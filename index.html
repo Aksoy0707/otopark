@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Granada Büyük Otopark Yönetim Sistemi</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e9ecef; margin: 0; padding: 20px; color: #343a40; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #0056b3; font-size: 24px; border-bottom: 2px solid #dee2e6; padding-bottom: 15px; margin-bottom: 25px; }
+        
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dee2e6; }
+        .section h3 { margin-top: 0; color: #495057; font-size: 18px; }
+        
+        /* Özet İstatistik Paneli */
+        .stats-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .stat-card { flex: 1; background: #fff; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #ced4da; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .stat-card h4 { margin: 0 0 5px 0; font-size: 14px; color: #6c757d; }
+        .stat-card span { font-size: 22px; font-weight: bold; }
+        .dolu-sayi { color: #dc3545; }
+        .bos-sayi { color: #198754; }
+
+        input { padding: 10px; font-size: 16px; border: 1px solid #ced4da; border-radius: 5px; width: calc(100% - 24px); margin-bottom: 10px; text-transform: uppercase; }
+        .row { display: flex; gap: 10px; }
+        .row input { width: 50%; }
+        
+        button { padding: 12px; font-size: 15px; font-weight: bold; background-color: #0d6efd; color: white; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        button:hover { background-color: #0b5ed7; }
+        .btn-green { background-color: #198754; margin-top: 10px; width: 100%; }
+        .btn-green:hover { background-color: #157347; }
+        .btn-red { background-color: #dc3545; color: white; border: none; padding: 6px 12px; font-size: 13px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn-red:hover { background-color: #bb2d3b; }
+        .btn-print { background-color: #ffc107; color: #000; }
+        .btn-print:hover { background-color: #e0a800; }
+        
+        #aramaSonuc { margin-top: 15px; font-size: 15px; display: none; }
+        .sonuc-kutu { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; border-radius: 6px; margin-bottom: 8px; color: #856404; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .success { background-color: #d1e7dd !important; color: #0f5132 !important; border: 1px solid #badbcc !important; }
+        .error { background-color: #f8d7da; color: #842029 !important; border: 1px solid #f5c2c7 !important; padding: 15px; text-align: center; border-radius: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 15px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; }
+        th { background-color: #0056b3; color: white; position: sticky; top: 0;}
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .satir-bos { background-color: #e8f5e9 !important; color: #2e7d32; }
+        .sure-badge { font-size: 12px; background: #e2e3e5; color: #383d41; padding: 3px 8px; border-radius: 10px; font-weight: bold;}
+        
+        /* --- YAZDIRMA (PRINT) STİLLERİ --- */
+        #printAlani { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #printAlani, #printAlani * { visibility: visible; }
+            #printAlani { display: block; position: absolute; left: 0; top: 0; width: 100%; }
+            .print-header { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; font-family: Arial, sans-serif; text-transform: uppercase; }
+            .print-table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }
+            .print-table td { border: 1px solid #000; padding: 4px 2px; }
+            .print-no { font-weight: bold; width: 3%; text-align: center; background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .print-plaka { width: 11%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚘 Granada Otopark Sistemi</h1>
+
+    <!-- ÖZET PANELİ -->
+    <div class="stats-box">
+        <div class="stat-card">
+            <h4>Dolu Yerler</h4>
+            <span id="toplamDolu" class="dolu-sayi">0</span>
+        </div>
+        <div class="stat-card">
+            <h4>Boş Yerler (1-229 Arası)</h4>
+            <span id="toplamBos" class="bos-sayi">0</span>
+        </div>
+    </div>
+
+    <!-- ARAMA BÖLÜMÜ -->
+    <div class="section">
+        <h3>🔍 Akıllı Hızlı Sorgulama</h3>
+        <p style="font-size: 14px; color: #6c757d; margin-top: -10px;">Plakanın tamamını, parçasını veya park numarasını yazabilirsiniz.</p>
+        <input type="text" id="aramaKutusu" placeholder="Plaka parçası veya Park No yazın..." oninput="aramaYap()">
+        <div id="aramaSonuc"></div>
+    </div>
+
+    <!-- EKLEME / GÜNCELLEME BÖLÜMÜ -->
+    <div class="section">
+        <h3>➕ Yeni Araç Girişi Yap</h3>
+        <div class="row">
+            <input type="number" id="yeniNo" placeholder="Park No (Örn: 152)">
+            <input type="text" id="yeniPlaka" placeholder="Plaka (Örn: 34 ABC 123)">
+        </div>
+        <button class="btn-green" onclick="aracEkle()">Giriş Yap ve Sayacı Başlat</button>
+        <div id="islemSonuc" style="margin-top:15px; display:none; padding:10px; border-radius:5px; text-align:center;"></div>
+    </div>
+
+    <!-- LİSTELEME BÖLÜMÜ -->
+    <div class="section">
+        <h3>📋 Tüm Otopark Durumu (Dolu & Boş)</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button style="background-color: #6c757d; flex: 1;" onclick="listeyiGoster()">Tüm Listeyi Göster / Gizle</button>
+            <button class="btn-print" style="flex: 1;" onclick="listeyiYazdir()">🖨️ Kağıt Düzeninde Yazdır</button>
+        </div>
+        <div id="listeKapsayici" style="display: none; max-height: 500px; overflow-y: auto;">
+            <table id="otoparkTablosu">
+                <thead>
+                    <tr>
+                        <th>Park No</th>
+                        <th>Plaka / Durum</th>
+                        <th>Süre</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Yazdırma Şablonu İçin Gizli Alan -->
+<div id="printAlani"></div>
+
+<script>
+    const MAKSIMUM_KAPASITE = 229; // Görseldeki liste 229 numaraya kadar gitmektedir.
+    
+    // Fotoğraftan okunan en güncel plaka listesi (06.08.2026 Tarihli GO.GÜV.FR.06 Listesi)
+    const baslangicPlakalari = {
+        1:"34 NLM 292", 2:"06 EOJ 313", 3:"54 AEZ 660", 4:"34 GDJ 904", 5:"52 AGL 747", 6:"60 NV 909", 7:"34 FPV 290", 8:"38 ANH 796", 9:"06 BKJ 252", 10:"34 CLG 941",
+        11:"34 NZD 634", 12:"38 ANF 747", 13:"K YP 47", 14:"06 KA 0019", 15:"38 ALT 436", 18:"DJ 92 AK", 19:"42 BFV 949", 20:"61 AGE 536", 21:"34 MPD 844", 23:"BI SE 138",
+        24:"34 NLV 997", 25:"33 BMD 77", 27:"34 PPP 467", 28:"DIN KE 26", 29:"IF 19 MSK", 31:"06 BOF 986", 32:"FB ZOY SX", 33:"16 SFF 51", 34:"B 611 LAD",
+        37:"20 EFE 28", 39:"34 FCL 336", 40:"34 HTV 299", 43:"26 AAK 898", 44:"34 GEK 077", 45:"44 NK 976", 46:"33 AZM 528", 47:"06 GE 6053", 48:"34 CUP 347", 49:"68 ACC 737",
+        51:"41 BEB 288", 52:"34 PZR 731", 53:"38 TB 868", 54:"31 KR 061", 55:"41 BBN 092", 56:"34 HAF 989", 59:"34 RCC 999", 60:"14 EM 523", 61:"BE BA 92", 62:"34 S 7298",
+        63:"16 GH 907", 67:"31 KDV 98", 68:"01 ELT 05", 69:"34 CKC 200", 70:"06 ED 3528", 72:"07 BLN 890", 75:"06 FTA 490", 77:"B 184 DC1", 78:"06 GCJ 680", 80:"67 BF 037",
+        81:"ZF 567 N", 87:"11 ABN 056", 88:"06 FMA 433", 89:"07 AFM 190", 90:"41 AKK 629", 91:"07 VIR 32", 92:"33 AS 997", 93:"27 EM 425", 94:"52 FM 336", 95:"DJ 77 YRN",
+        96:"34 GOP 938", 98:"D CF 606", 99:"11 ACC 867", 100:"26 BV 976", 101:"06 JUE 09", 102:"10 AFU 091", 107:"16 BCK 253", 108:"39 BB 430", 109:"45 AKJ 837", 115:"16 YS 328",
+        118:"11 ACU 777", 119:"34 GRP 938", 122:"06 AAP 825", 124:"35 BHR 142", 127:"06 CVZ 094", 133:"07 MEZ 77", 134:"34 CDE 769", 135:"4 SBP 04", 136:"26 EJ 401", 137:"01 BAZ 140",
+        139:"34 EHM 360", 140:"34 HB 8217", 141:"GU 645 V", 144:"34 SZ 7078", 146:"06 EA 501", 147:"16 BUV 582", 149:"06 FER 235", 150:"16 BFG 992", 151:"06 DIC 418", 152:"27 BBJ 180",
+        153:"11 BB 915", 154:"11 DN 992", 156:"43 AGS 971", 157:"34 GP 1641", 158:"06 DZF 821", 159:"34 CGF 221", 161:"16 BBB 683", 163:"06 FDA 299", 167:"41 AIR 954", 175:"KARACA",
+        178:"16 NK 426", 183:"BARİYER GİRİŞ", 184:"07 ESH 89", 186:"06 GBN 036", 199:"MRNGOZHANE", 200:"AG 46 AME", 201:"AG 21 FMM", 208:"ŞARJ İSTASYONU", 209:"06 EOJ 313"
+    };
+
+    let otoparkVerisi = {};
+
+    window.onload = function() {
+        // Yeni listeyi yüklemek için hafıza versiyonunu v3 yaptık
+        if(localStorage.getItem("granadaOtopark_v3")) {
+            otoparkVerisi = JSON.parse(localStorage.getItem("granadaOtopark_v3"));
+        } else {
+            let simdikiZaman = Date.now();
+            for (let no in baslangicPlakalari) {
+                otoparkVerisi[no] = { plaka: baslangicPlakalari[no], girisZamani: simdikiZaman };
+            }
+            localStorage.setItem("granadaOtopark_v3", JSON.stringify(otoparkVerisi));
+        }
+        istatistikGuncelle();
+    };
+
+    // CANLI SÜRE GÜNCELLEYİCİ - 60 saniyede bir süreleri yeniler
+    setInterval(() => {
+        if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
+        if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
+    }, 60000);
+
+    function sureHesapla(zaman) {
+        if (!zaman) return "-";
+        let farkMilisaniye = Date.now() - zaman;
+        let farkSaniye = Math.floor(farkMilisaniye / 1000);
+        if (farkSaniye < 60) return "Az önce";
+        let dk = Math.floor(farkSaniye / 60);
+        let saat = Math.floor(dk / 60);
+        if (saat > 0) return saat + " sa " + (dk % 60) + " dk";
+        return dk + " dk";
+    }
+
+    function istatistikGuncelle() {
+        let doluSayisi = Object.keys(otoparkVerisi).length;
+        let bosSayisi = MAKSIMUM_KAPASITE - doluSayisi;
+        if(bosSayisi < 0) bosSayisi = 0;
+
+        document.getElementById('toplamDolu').innerText = doluSayisi;
+        document.getElementById('toplamBos').innerText = bosSayisi;
+    }
+
+    function aramaYap() {
+        let girdi = document.getElementById('aramaKutusu').value.trim().toUpperCase();
+        let sonucDiv = document.getElementById('aramaSonuc');
+        
+        if (girdi === "") {
+            sonucDiv.style.display = "none";
+            sonucDiv.innerHTML = "";
+            return;
+        }
+
+        sonucDiv.style.display = "block";
+        let HTMLIcerik = "";
+        let bulunanSayisi = 0;
+
+        // 1. Durum: Doğrudan Park No Araması Yapıldıysa
+        if (!isNaN(girdi) && girdi > 0 && girdi <= MAKSIMUM_KAPASITE) {
+            if (otoparkVerisi[girdi]) {
+                let data = otoparkVerisi[girdi];
+                HTMLIcerik += `<div class="sonuc-kutu success">
+                    <div><b>Park No: ${girdi}</b> ➔ Plaka: <b>${data.plaka}</b> <span class="sure-badge">(${sureHesapla(data.girisZamani)})</span></div>
+                    <button class="btn-red" onclick="aracCikis(${girdi})">🔴 Hızlı Çıkış Yap</button>
+                </div>`;
+            } else {
+                HTMLIcerik += `<div class="sonuc-kutu" style="background:#e8f5e9; color:#2e7d32; border-color:#c8e6c9;">
+                    <div><b>Park No: ${girdi}</b> ➔ Bu yer şu an <b>BOŞ</b>.</div>
+                </div>`;
+            }
+            bulunanSayisi++;
+        }
+
+        // 2. Durum: Plaka Araması (Plaka Parçasına Göre)
+        for (let no in otoparkVerisi) {
+            let kayitliPlaka = otoparkVerisi[no].plaka.toUpperCase();
+            let temizKayitli = kayitliPlaka.replace(/\s+/g, '');
+            let temizGirdi = girdi.replace(/\s+/g, '');
+
+            if (temizKayitli.includes(temizGirdi)) {
+                if (isNaN(girdi) || girdi !== no) {
+                    let data = otoparkVerisi[no];
+                    HTMLIcerik += `<div class="sonuc-kutu">
+                        <div>🚗 Plaka: <b>${data.plaka}</b> ➔ Park Yeri: <b>${no} Numaralı Yer</b> <span class="sure-badge">(${sureHesapla(data.girisZamani)})</span></div>
+                        <button class="btn-red" onclick="aracCikis(${no})">🔴 Hızlı Çıkış Yap</button>
+                    </div>`;
+                    bulunanSayisi++;
+                }
+            }
+        }
+
+        if (bulunanSayisi === 0) {
+            sonucDiv.innerHTML = `<div class="error">❌ "${girdi}" ile eşleşen bir araç veya park yeri bulunamadı.</div>`;
+        } else {
+            sonucDiv.innerHTML = HTMLIcerik;
+        }
+    }
+
+    function aracEkle() {
+        let noInput = document.getElementById('yeniNo').value.trim();
+        let plaka = document.getElementById('yeniPlaka').value.trim().toUpperCase();
+        let sonucEl = document.getElementById('islemSonuc');
+
+        if (noInput === "" || plaka === "") {
+            sonucEl.style.display = "block";
+            sonucEl.className = "error";
+            sonucEl.innerHTML = "Lütfen hem numara hem de plaka girin.";
+            return;
+        }
+
+        let no = parseInt(noInput, 10);
+
+        // HATA KONTROLÜ 1: Kapasite Sınırı
+        if (no < 1 || no > MAKSIMUM_KAPASITE) {
+            sonucEl.style.display = "block";
+            sonucEl.className = "error";
+            sonucEl.innerHTML = `❌ <b>Geçersiz İşlem:</b> Lütfen 1 ile ${MAKSIMUM_KAPASITE} arasında bir park numarası girin.`;
+            return;
+        }
+
+        // HATA KONTROLÜ 2: Dolu Alana Kayıt Engelleme
+        if (otoparkVerisi[no]) {
+            sonucEl.style.display = "block";
+            sonucEl.className = "error";
+            sonucEl.innerHTML = `❌ <b>Hata:</b> ${no} numaralı alanda şu anda <b>${otoparkVerisi[no].plaka}</b> plakalı araç bulunuyor! Lütfen önce çıkış işlemi yapın.`;
+            return;
+        }
+
+        otoparkVerisi[no] = { plaka: plaka, girisZamani: Date.now() };
+        localStorage.setItem("granadaOtopark_v3", JSON.stringify(otoparkVerisi));
+        
+        document.getElementById('yeniNo').value = "";
+        document.getElementById('yeniPlaka').value = "";
+        
+        sonucEl.style.display = "block";
+        sonucEl.className = "success";
+        sonucEl.innerHTML = `✅ <b>${plaka}</b> plakası <b>${no}</b> numaraya başarıyla kaydedildi!`;
+        
+        istatistikGuncelle();
+        if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
+        
+        if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
+    }
+
+    function aracCikis(no) {
+        let data = otoparkVerisi[no];
+        let plakaText = data ? data.plaka : "";
+        
+        if (confirm(`${no} numaralı park yerindeki (${plakaText}) araç için çıkış verilsin mi?`)) {
+            delete otoparkVerisi[no];
+            localStorage.setItem("granadaOtopark_v3", JSON.stringify(otoparkVerisi));
+            
+            istatistikGuncelle();
+            if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
+            
+            let aramaMetni = document.getElementById('aramaKutusu').value.trim();
+            if (aramaMetni !== "") {
+                aramaYap();
+            } else {
+                document.getElementById('aramaSonuc').style.display = "none";
+            }
+
+            let islemEl = document.getElementById('islemSonuc');
+            islemEl.style.display = "block";
+            islemEl.className = "success";
+            islemEl.innerHTML = `🚗 <b>${no}</b> numaralı alandaki <b>${plakaText}</b> plakalı aracın çıkışı yapıldı.`;
+        }
+    }
+
+    function listeyiGoster() {
+        let listeDiv = document.getElementById('listeKapsayici');
+        if (listeDiv.style.display === "none") {
+            listeDiv.style.display = "block";
+            tabloyuDoldur();
+        } else {
+            listeDiv.style.display = "none";
+        }
+    }
+
+    function tabloyuDoldur() {
+        let tbody = document.querySelector("#otoparkTablosu tbody");
+        tbody.innerHTML = "";
+        
+        for (let no = 1; no <= MAKSIMUM_KAPASITE; no++) {
+            let tr = document.createElement("tr");
+            
+            if (otoparkVerisi[no]) {
+                let data = otoparkVerisi[no];
+                tr.innerHTML = `<td><strong>${no}</strong></td><td><b>${data.plaka}</b></td><td><span class="sure-badge">${sureHesapla(data.girisZamani)}</span></td><td><button class='btn-red' onclick='aracCikis(${no})'>Çıkış</button></td>`;
+            } else {
+                tr.className = "satir-bos";
+                tr.innerHTML = `<td><strong>${no}</strong></td><td>🟢 BOŞ YER</td><td>-</td><td>-</td>`;
+            }
+            tbody.appendChild(tr);
+        }
+    }
+
+    function listeyiYazdir() {
+        let printDiv = document.getElementById('printAlani');
+        let bugun = new Date().toLocaleDateString('tr-TR');
+        
+        let html = `<div class="print-header">GRANADA BÜYÜK OTOPARK LİSTESİ <span style="float:right; font-size:14px; margin-top:3px;">Tarih: ${bugun}</span></div>`;
+        html += '<table class="print-table">';
+        
+        let toplamSatir = 34; 
+        let toplamSutun = 7;
+        
+        for (let r = 1; r <= toplamSatir; r++) {
+            html += '<tr>';
+            for (let c = 0; c < toplamSutun; c++) {
+                let no = r + (c * toplamSatir);
+                
+                if (no <= MAKSIMUM_KAPASITE) {
+                    let plaka = otoparkVerisi[no] ? otoparkVerisi[no].plaka : "";
+                    html += `<td class="print-no">${no}</td><td class="print-plaka">${plaka}</td>`;
+                } else {
+                    html += `<td style="border:none;"></td><td style="border:none;"></td>`;
+                }
+            }
+            html += '</tr>';
+        }
+        
+        html += '</table>';
+        printDiv.innerHTML = html;
+        
+        window.print();
+    }
+</script>
+</body>
+</html>

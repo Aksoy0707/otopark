@@ -66,7 +66,7 @@
 <body>
 
 <div class="container">
-    <h1>🚘 Granada Otopark Sistemi (Supabase Bağlantılı)</h1>
+    <h1>🚘 Granada Otopark Sistemi</h1>
 
     <!-- ÖZET PANELİ -->
     <div class="stats-box">
@@ -126,16 +126,16 @@
 <div id="printAlani"></div>
 
 <script>
-    // --- SUPABASE BAĞLANTISI ---
+    // --- SUPABASE BAĞLANTISI (DOĞRULANMIŞ ANAHTARLAR) ---
     const SUPABASE_URL = "https://xjcxotjhnrnivsqbnghz.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRefiI6InhqY3hvdGpobnJuaXZzcWJuZ2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTM3MjAsImV4cCI6MjEwMTU4OTcyMH0.XJue1YExVc74VE6h0-kI9pHwhmu7_UvsWkDicf8HCZk";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqY3hvdGpobnJuaXZzcWJuZ2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTM3MjAsImV4cCI6MjEwMTU4OTcyMH0.XJue1YExVc74VE6h0-kI9pHwhmu7_UvsWkDicf8HCZk";
 
-    // Global Supabase istemcisi oluşturuluyor
+    // Supabase İstemcisi
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const MAKSIMUM_KAPASITE = 229;
     
-    // Varsayılan İlk Liste (Veritabanı tamamen boşsa yüklenecektir)
+    // Varsayılan İlk Liste (Veritabanı tamamen boşsa otomatik yüklenir)
     const baslangicPlakalari = {
         1:"34 NLM 292", 2:"06 EOJ 313", 3:"54 AEZ 660", 4:"34 GDJ 904", 5:"52 AGL 747", 6:"60 NV 909", 7:"34 FPV 290", 8:"38 ANH 796", 9:"06 BKJ 252", 10:"34 CLG 941",
         11:"34 NZD 634", 12:"38 ANF 747", 13:"K YP 47", 14:"06 KA 0019", 15:"38 ALT 436", 18:"DJ 92 AK", 19:"42 BFV 949", 20:"61 AGE 536", 21:"34 MPD 844", 23:"BI SE 138",
@@ -158,20 +158,19 @@
         canliDinleyiciBaslat();
     };
 
-    // SUPABASE'DEN VERİLERİ ÇEKME
+    // VERİLERİ ÇEKME
     async function verileriYukle() {
         try {
             const { data, error } = await supabaseClient.from('otopark').select('*');
 
             if (error) {
                 console.error("Supabase Yükleme Hatası:", error.message);
-                alert("Veritabanından veriler çekilemedi! Lütfen Supabase SQL izinlerinizi kontrol edin. Hata: " + error.message);
+                alert("Hata Oluştu: " + error.message);
                 return;
             }
 
             otoparkVerisi = {};
 
-            // Veritabanı ilk kez açıldıysa ve tamamen boşsa varsayılan listeyi yükleyelim
             if (!data || data.length === 0) {
                 await varsayilanVerileriAktar();
             } else {
@@ -189,7 +188,7 @@
         }
     }
 
-    // CANLI VERİ TAZEMLEME (SUPABASE REALTIME)
+    // CANLI VERİ DİNLEME (REALTIME)
     function canliDinleyiciBaslat() {
         supabaseClient
             .channel('public:otopark')
@@ -199,14 +198,12 @@
             .subscribe();
     }
 
-    // Ekrandaki bileşenlerin anlık görünüm güncellemesi
     function ekraniGuncelle() {
         istatistikGuncelle();
         if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
         if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
     }
 
-    // İlk kurulumda başlangıç plakalarını Supabase'e ekleyen yardımcı fonksiyon
     async function varsayilanVerileriAktar() {
         let simdikiZaman = Date.now();
         let topluVeri = [];
@@ -224,7 +221,6 @@
         if (error) console.error("Varsayılan veri aktarım hatası:", error.message);
     }
 
-    // CANLI SÜRE GÜNCELLEYİCİ - 60 saniyede bir süreleri yeniler
     setInterval(() => {
         ekraniGuncelle();
     }, 60000);
@@ -263,7 +259,6 @@
         let HTMLIcerik = "";
         let bulunanSayisi = 0;
 
-        // 1. Durum: Doğrudan Park No Araması Yapıldıysa
         if (!isNaN(girdi) && girdi > 0 && girdi <= MAKSIMUM_KAPASITE) {
             if (otoparkVerisi[girdi]) {
                 let data = otoparkVerisi[girdi];
@@ -279,7 +274,6 @@
             bulunanSayisi++;
         }
 
-        // 2. Durum: Plaka Araması (Plaka Parçasına Göre)
         for (let no in otoparkVerisi) {
             let kayitliPlaka = otoparkVerisi[no].plaka.toUpperCase();
             let temizKayitli = kayitliPlaka.replace(/\s+/g, '');
@@ -304,7 +298,7 @@
         }
     }
 
-    // SUPABASE ÜZERİNDE ARAÇ EKLEME
+    // ARAÇ EKLEME
     async function aracEkle() {
         let noInput = document.getElementById('yeniNo').value.trim();
         let plaka = document.getElementById('yeniPlaka').value.trim().toUpperCase();
@@ -319,25 +313,22 @@
 
         let no = parseInt(noInput, 10);
 
-        // HATA KONTROLÜ 1: Kapasite Sınırı
         if (no < 1 || no > MAKSIMUM_KAPASITE) {
             sonucEl.style.display = "block";
             sonucEl.className = "error";
-            sonucEl.innerHTML = `❌ <b>Geçersiz İşlem:</b> Lütfen 1 ile ${MAKSIMUM_KAPASITE} arasında bir park numarası girin.`;
+            sonucEl.innerHTML = `❌ Lütfen 1 ile ${MAKSIMUM_KAPASITE} arasında bir park numarası girin.`;
             return;
         }
 
-        // HATA KONTROLÜ 2: Dolu Alana Kayıt Engelleme
         if (otoparkVerisi[no]) {
             sonucEl.style.display = "block";
             sonucEl.className = "error";
-            sonucEl.innerHTML = `❌ <b>Hata:</b> ${no} numaralı alanda şu anda <b>${otoparkVerisi[no].plaka}</b> plakalı araç bulunuyor! Lütfen önce çıkış işlemi yapın.`;
+            sonucEl.innerHTML = `❌ <b>Hata:</b> ${no} numaralı alanda şu anda <b>${otoparkVerisi[no].plaka}</b> plakalı araç bulunuyor!`;
             return;
         }
 
         let simdikiZaman = Date.now();
 
-        // Supabase Kayıt
         const { error } = await supabaseClient
             .from('otopark')
             .insert([{ park_no: no, plaka: plaka, giris_zamani: simdikiZaman }]);
@@ -345,7 +336,7 @@
         if (error) {
             sonucEl.style.display = "block";
             sonucEl.className = "error";
-            sonucEl.innerHTML = `❌ Supabase Kayıt Hatası: ${error.message}`;
+            sonucEl.innerHTML = `❌ Kayıt Hatası: ${error.message}`;
             return;
         }
 
@@ -361,14 +352,13 @@
         ekraniGuncelle();
     }
 
-    // SUPABASE ÜZERİNDEN ARAÇ ÇIKIŞI/SİLME
+    // ARAÇ ÇIKIŞI
     async function aracCikis(no) {
         let data = otoparkVerisi[no];
         let plakaText = data ? data.plaka : "";
         
         if (confirm(`${no} numaralı park yerindeki (${plakaText}) araç için çıkış verilsin mi?`)) {
             
-            // Supabase Silme İşlemi
             const { error } = await supabaseClient
                 .from('otopark')
                 .delete()
@@ -380,7 +370,6 @@
             }
 
             delete otoparkVerisi[no];
-            
             ekraniGuncelle();
 
             let islemEl = document.getElementById('islemSonuc');

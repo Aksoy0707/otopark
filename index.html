@@ -128,7 +128,7 @@
 <script>
     // --- SUPABASE BAĞLANTISI ---
     const SUPABASE_URL = "https://xjcxotjhnrnivsqbnghz.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqY3hvdGpobnJuaXZzcWJuZ2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTM3MjAsImV4cCI6MjEwMTU4OTcyMH0.XJue1YExVc74VE6h0-kI9pHwhmu7_UvsWkDicf8HCZk";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInRefiI6InhqY3hvdGpobnJuaXZzcWJuZ2h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMTM3MjAsImV4cCI6MjEwMTU4OTcyMH0.XJue1YExVc74VE6h0-kI9pHwhmu7_UvsWkDicf8HCZk";
     
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -154,6 +154,7 @@
 
     window.onload = function() {
         verileriYukle();
+        canliDinleyiciBaslat();
     };
 
     // SUPABASE'DEN VERİLERİ ÇEKME
@@ -163,7 +164,7 @@
 
             if (error) {
                 console.error("Supabase Yükleme Hatası:", error.message);
-                alert("Veritabanından veriler çekilemedi! Lütfen Supabase SQL adımlarını kontrol edin.");
+                alert("Veritabanından veriler çekilemedi! Lütfen Supabase SQL izinlerinizi kontrol edin.");
                 return;
             }
 
@@ -181,12 +182,27 @@
                 });
             }
 
-            istatistikGuncelle();
-            if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
-            if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
+            ekraniGuncelle();
         } catch (err) {
             console.error("Bağlantı Hatası:", err);
         }
+    }
+
+    // CANLI VERİ TAZEMLEME (SUPABASE REALTIME)
+    function canliDinleyiciBaslat() {
+        supabaseClient
+            .channel('public:otopark')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'otopark' }, () => {
+                verileriYukle();
+            })
+            .subscribe();
+    }
+
+    // Ekrandaki bileşenlerin anlık görünüm güncellemesi
+    function ekraniGuncelle() {
+        istatistikGuncelle();
+        if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
+        if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
     }
 
     // İlk kurulumda başlangıç plakalarını Supabase'e ekleyen yardımcı fonksiyon
@@ -209,8 +225,7 @@
 
     // CANLI SÜRE GÜNCELLEYİCİ - 60 saniyede bir süreleri yeniler
     setInterval(() => {
-        if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
-        if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
+        ekraniGuncelle();
     }, 60000);
 
     function sureHesapla(zaman) {
@@ -342,9 +357,7 @@
         sonucEl.className = "success";
         sonucEl.innerHTML = `✅ <b>${plaka}</b> plakası <b>${no}</b> numaraya başarıyla kaydedildi!`;
         
-        istatistikGuncelle();
-        if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
-        if (document.getElementById('aramaKutusu').value.trim() !== "") aramaYap();
+        ekraniGuncelle();
     }
 
     // SUPABASE ÜZERİNDEN ARAÇ ÇIKIŞI/SİLME
@@ -367,15 +380,7 @@
 
             delete otoparkVerisi[no];
             
-            istatistikGuncelle();
-            if (document.getElementById('listeKapsayici').style.display === "block") tabloyuDoldur();
-            
-            let aramaMetni = document.getElementById('aramaKutusu').value.trim();
-            if (aramaMetni !== "") {
-                aramaYap();
-            } else {
-                document.getElementById('aramaSonuc').style.display = "none";
-            }
+            ekraniGuncelle();
 
             let islemEl = document.getElementById('islemSonuc');
             islemEl.style.display = "block";
